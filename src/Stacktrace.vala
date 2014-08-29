@@ -78,6 +78,8 @@ public class Stacktrace {
 
     public static Color error_background { get; set; default = Color.RED; }
 
+    public static bool attach_gdb_on_segv { get; set; default = true; }
+
     public Gee.ArrayList<Frame> frames {
         get
         {
@@ -161,15 +163,16 @@ public class Stacktrace {
         is_all_function_name_blank = true ; 
         is_all_file_name_blank = true ; 
         
-        int size = Linux.backtrace (array, frame_count);
         //Linux.backtrace_symbols_fd (array, size, Posix.STDERR_FILENO);
-        # if VALA_0_26
-        var strings = Linux.Backtrace.symbols ( array, size );
-        # else
-            unowned string[] strings = Linux.backtrace_symbols (array, size);
+# if VALA_0_26
+        var size = Linux.Backtrace.@get ( array );
+        var strings = Linux.Backtrace.symbols ( array );
+# else
+        int size = Linux.backtrace (array, frame_count);
+        unowned string[] strings = Linux.backtrace_symbols (array, size);
         // Needed because of some weird bug
         strings.length = size;
-        # endif
+# endif
 
         int[] addresses = (int[])array;
         string module = get_module_name ();
@@ -531,8 +534,13 @@ public class Stacktrace {
     }
     
     public static void handler (int sig) {
-        Stacktrace stack = new Stacktrace ((ProcessSignal)sig);
-        stack.print ();
+        if (Stacktrace.attach_gdb_on_segv) {
+            Posix.system ("gdb -p %i".printf ((int) Posix.getpid ()));
+        } else {
+            Stacktrace stack = new Stacktrace ((ProcessSignal)sig);
+            stack.print ();
+        }
+
         Process.exit (1);
     }
 }
