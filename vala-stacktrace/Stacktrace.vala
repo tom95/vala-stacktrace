@@ -78,7 +78,7 @@ public class Stacktrace {
 
     public static Color error_background { get; set; default = Color.RED; }
 
-    public static bool attach_gdb_on_segv { get; set; default = true; }
+    public static bool attach_gdb { get; set; default = false; }
 
     public Gee.ArrayList<Frame> frames {
         get
@@ -534,7 +534,7 @@ public class Stacktrace {
     }
     
     public static void handler (int sig) {
-        if (Stacktrace.attach_gdb_on_segv) {
+        if (Stacktrace.attach_gdb) {
             Posix.system ("gdb -p %i".printf ((int) Posix.getpid ()));
         } else {
             Stacktrace stack = new Stacktrace ((ProcessSignal)sig);
